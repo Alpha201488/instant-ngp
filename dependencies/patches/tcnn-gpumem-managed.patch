@@ -2,7 +2,7 @@ diff --git a/include/tiny-cuda-nn/gpu_memory.h b/include/tiny-cuda-nn/gpu_memory
 index 24643b2f..0000000 100644
 --- a/include/tiny-cuda-nn/gpu_memory.h
 +++ b/include/tiny-cuda-nn/gpu_memory.h
-@@ -44,8 +44,20 @@
+@@ -44,9 +44,20 @@
  #include <stdexcept>
  #include <string>
  #include <tuple>
