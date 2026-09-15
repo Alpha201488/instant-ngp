@@ -25,6 +25,7 @@ option(NGP_BUILD_WITH_OPTIX "Build with OptiX to enable hardware ray tracing?" O
 option(NGP_BUILD_WITH_PYTHON_BINDINGS "Build bindings that allow instrumenting instant-ngp with Python?" ON)
 option(NGP_BUILD_WITH_RTC "Build support for runtime compilation of fully fused kernels?" ON)
 option(NGP_BUILD_WITH_VULKAN "Build with Vulkan to enable DLSS support?" ON)
+option(NGP_BUILD_WITH_MANAGED_MEMORY "Use CUDA managed (UVM) memory for network parameters so large scenes can spill into system RAM on low-VRAM GPUs?" ON)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
@@ -35,7 +36,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 # Set a default configuration if none was specified
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 	message(STATUS "No release type specified. Setting to 'Release'.")
-	set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
+	set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the build type." FORCE)
 	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "RelWithDebInfo")
 endif()
 
@@ -98,6 +99,11 @@ set(TCNN_ALLOW_CUBLAS_CUSOLVER OFF)
 add_subdirectory(dependencies/tiny-cuda-nn)
 
 set(CMAKE_CUDA_ARCHITECTURES ${TCNN_CUDA_ARCHITECTURES})
+
+if (NGP_BUILD_WITH_MANAGED_MEMORY)
+	message(STATUS "instant-ngp: managed (UVM) memory enabled for network parameters (NGP_BUILD_WITH_MANAGED_MEMORY=ON)")
+	target_compile_definitions(tiny-cuda-nn PUBLIC -DTCNN_FORCE_MANAGED_MEMORY=1)
+endif()
 
 if (NGP_BUILD_WITH_GUI)
 	find_package(Vulkan)
