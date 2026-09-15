@@ -1,0 +1,116 @@
+# CUDA build for the instant-ngp low-VRAM fork (UVM managed memory).
+#
+# Adapted from the reference build-cuda.yml (Spirula strategy port). Pitfalls
+# avoided (learned the hard way upstream):
+#   * GitHub runners have no NVIDIA GPU inside the container, and tiny-cuda-nn
+#     probes nvidia-smi for the target architecture -- without an explicit
+#     TCNN_CUDA_ARCHITECTURES the configure step fails to detect a GPU.
+#   * The runner container has no GUI libs; build with NGP_BUILD_WITH_GUI=OFF
+#     to skip the glfw/imgui/OpenGL fetch-and-build entirely, and
+#     NGP_BUILD_WITH_OPTIX=OFF because the OptiX SDK headers are not vendored
+#     in the repo (CLI trains, evaluates and exports; GUI can be built
+#     locally with -DNGP_BUILD_WITH_GUI=ON).
+#   * Every push lands on a fresh runner, so without a compiler cache each run
+#     recompiles the whole tree. ccache persists object hashes across runs;
+#     only files that actually changed rebuild. Fixed key (not sha-based): the
+#     concurrency group guarantees a single build per branch, so the entry is
+#     simply refreshed each run instead of accumulating near-identical cache
+#     entries.
+
+name: build-cuda
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-cuda-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cuda-linux:
+    runs-on: ubuntu-24.04
+    container:
+      image: nvidia/cuda:12.8.1-devel-ubuntu24.04
+    env:
+      # RTX 50-series (Blackwell, sm_120) is the primary target; the 8.9 arch
+      # keeps the artifact runnable on 40-series cards too.
+      TCNN_CUDA_ARCHITECTURES: "12.0;8.9"
+      CMAKE_BUILD_TYPE: Release
+    steps:
+      - name: Install Git
+        run: apt-get update && apt-get install -y git
+
+      - name: Checkout source (with submodules)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Free disk space
+        run: |
+          apt-get clean
+          rm -rf /var/lib/apt/lists/*
+          rm -rf /usr/local/cuda/nsight* /usr/local/cuda/compute-sanitizer \
+                 /usr/local/cuda/extras /usr/local/cuda/tools /usr/local/cuda/doc
+          find /usr/local/cuda/targets/x86_64-linux/lib -name '*.a' \
+            ! -name 'libcudart_static.a' ! -name 'libcudadevrt.a' \
+            ! -name 'libculibos.a' -delete 2>/dev/null || true
+
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y cmake ninja-build pkg-config ccache
+
+      - name: Apply low-VRAM patch to tiny-cuda-nn
+        run: |
+          cd dependencies/tiny-cuda-nn
+          git apply --check ../../dependencies/patches/tcnn-gpumem-managed.patch
+          git apply ../../dependencies/patches/tcnn-gpumem-managed.patch
+
+      - name: Restore ccache
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.cache/ccache
+          key: ccache-linux-${{ runner.arch }}-cuda128
+          restore-keys: ccache-linux-
+
+      - name: Configure
+        run: |
+          ccache --set-config=max_size=6G
+          ccache --set-config=compression=true
+          cmake -B build -S . -G Ninja \
+            -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} \
+            -DNGP_BUILD_WITH_GUI=OFF \
+            -DNGP_BUILD_WITH_OPTIX=OFF \
+            -DNGP_BUILD_WITH_PYTHON_BINDINGS=OFF \
+            -DNGP_BUILD_WITH_MANAGED_MEMORY=ON \
+            -DTCNN_CUDA_ARCHITECTURES="${{ env.TCNN_CUDA_ARCHITECTURES }}" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache
+
+      - name: Build
+        run: cmake --build build -j $(nproc)
+
+      - name: Smoke test
+        run: |
+          set -e
+          test -x ./build/instant-ngp
+          if ./build/instant-ngp --help >/dev/null 2>&1; then
+            echo "CLI --help OK"
+          else
+            echo "CLI --help skipped (headless runner without GPU)"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: instant-ngp-lowvram-linux-cuda
+          path: build/instant-ngp
+          retention-days: 30

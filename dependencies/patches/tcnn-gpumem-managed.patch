@@ -1,0 +1,35 @@
+diff --git a/include/tiny-cuda-nn/gpu_memory.h b/include/tiny-cuda-nn/gpu_memory.h
+index 24643b2f..0000000 100644
+--- a/include/tiny-cuda-nn/gpu_memory.h
++++ b/include/tiny-cuda-nn/gpu_memory.h
+@@ -44,8 +44,20 @@
+ #include <stdexcept>
+ #include <string>
+ #include <tuple>
+ #include <unordered_map>
+ #include <vector>
+ 
+ namespace tcnn {
++
++// --- Low-VRAM fork (instant-ngp-lowvram) ---
++// When TCNN_FORCE_MANAGED_MEMORY is set to 1, every GPUMemory allocation uses
++// CUDA managed (UVM) memory instead of plain device memory. This lets network
++// parameters (the NeRF hash grid, MLP weights and gradients) exceed the GPU's
++// VRAM and transparently spill into system RAM, at the cost of some throughput
++// whenever pages have to migrate. Enable via instant-ngp's
++// NGP_BUILD_WITH_MANAGED_MEMORY CMake option (default ON in this fork).
++#ifndef TCNN_FORCE_MANAGED_MEMORY
++#define TCNN_FORCE_MANAGED_MEMORY 0
++#endif
+ 
+ #define DEBUG_GUARD_SIZE 0
+@@ -71,8 +83,8 @@
+ 		log_debug("GPUMemory: allocating {}.", bytes_to_string(n_bytes));
+ 
+ 		uint8_t* rawptr = nullptr;
+-		if (m_managed) {
++		if (m_managed || TCNN_FORCE_MANAGED_MEMORY) {
+ 			CUDA_CHECK_THROW(cudaMallocManaged((void**)&rawptr, n_bytes+DEBUG_GUARD_SIZE*2));
+ 		} else {
+ 			CUDA_CHECK_THROW(cudaMalloc((void**)&rawptr, n_bytes+DEBUG_GUARD_SIZE*2));
+ 		}
