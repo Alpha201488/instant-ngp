@@ -5,11 +5,17 @@
 #   * GitHub runners have no NVIDIA GPU inside the container, and tiny-cuda-nn
 #     probes nvidia-smi for the target architecture -- without an explicit
 #     TCNN_CUDA_ARCHITECTURES the configure step fails to detect a GPU.
+#   * Architectures must use the plain number form (e.g. "120;89"): the
+#     dotted form "12.0" is read as the ancient sm_12 and CUDA 12.8 falls
+#     back to sm_50, producing an artifact that cannot run on RTX 50-series.
 #   * The runner container has no GUI libs; build with NGP_BUILD_WITH_GUI=OFF
 #     to skip the glfw/imgui/OpenGL fetch-and-build entirely, and
 #     NGP_BUILD_WITH_OPTIX=OFF because the OptiX SDK headers are not vendored
 #     in the repo (CLI trains, evaluates and exports; GUI can be built
 #     locally with -DNGP_BUILD_WITH_GUI=ON).
+#   * zstr (tiny-cuda-nn dependency) needs zlib at configure time -- the
+#     bare CUDA devel image has no zlib1g-dev, so install it explicitly or
+#     CMake fails on find_package(ZLIB).
 #   * Every push lands on a fresh runner, so without a compiler cache each run
 #     recompiles the whole tree. ccache persists object hashes across runs;
 #     only files that actually changed rebuild. Fixed key (not sha-based): the
@@ -38,9 +44,9 @@ jobs:
     container:
       image: nvidia/cuda:12.8.1-devel-ubuntu24.04
     env:
-      # RTX 50-series (Blackwell, sm_120) is the primary target; the 8.9 arch
+      # RTX 50-series (Blackwell, sm_120) is the primary target; the 89 arch
       # keeps the artifact runnable on 40-series cards too.
-      TCNN_CUDA_ARCHITECTURES: "12.0;8.9"
+      TCNN_CUDA_ARCHITECTURES: "120;89"
       CMAKE_BUILD_TYPE: Release
     steps:
       - name: Install Git
@@ -65,7 +71,7 @@ jobs:
       - name: Install build dependencies
         run: |
           apt-get update
-          apt-get install -y cmake ninja-build pkg-config ccache
+          apt-get install -y cmake ninja-build pkg-config ccache zlib1g-dev
 
       - name: Apply low-VRAM patch to tiny-cuda-nn
         run: |
