@@ -1,0 +1,84 @@
+# CUDA build for the instant-ngp low-VRAM fork on Windows (UVM managed memory).
+#
+# The upstream CI workflow builds plain instant-ngp; this one applies the
+# low-VRAM patch to tiny-cuda-nn and enables NGP_BUILD_WITH_MANAGED_MEMORY so
+# the produced instant-ngp.exe spills hash-grid/MLP memory beyond VRAM into
+# system RAM (target: RTX 5060 Laptop 8GB + big RAM).
+#
+# Lessons from the Linux build-cuda.yml:
+#   * sm_120 needs CUDA >= 12.8; we use 12.9.1 like upstream's RTX-5000 row.
+#   * Arch must be the plain number form ("120"), not dotted "12.0".
+#   * actions/checkout defaults core.autocrlf=false, so submodule files stay
+#     LF and git apply succeeds; we pin autocrlf=false anyway as a guard.
+
+name: build-cuda-windows
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-cuda-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cuda-windows:
+    runs-on: windows-2022
+    env:
+      TCNN_CUDA_ARCHITECTURES: "120"
+      CUDA_VERSION: "12.9.1"
+    steps:
+      - name: Checkout source (with submodules)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Apply low-VRAM patch to tiny-cuda-nn
+        shell: bash
+        run: |
+          cd dependencies/tiny-cuda-nn
+          git config core.autocrlf false
+          git apply --check ../../dependencies/patches/tcnn-gpumem-managed.patch
+          git apply ../../dependencies/patches/tcnn-gpumem-managed.patch
+
+      - name: Install CUDA
+        shell: powershell
+        env:
+          cuda: ${{ env.CUDA_VERSION }}
+          visual_studio: "Visual Studio 17 2022"
+        run: .\dependencies\tiny-cuda-nn\dependencies\cuda-cmake-github-actions\scripts\actions\install_cuda_windows.ps1
+
+      - name: Configure
+        shell: bash
+        run: |
+          cmake -B build -S . -G "Visual Studio 17 2022" -A x64 \
+            -DNGP_BUILD_WITH_GUI=ON \
+            -DNGP_BUILD_WITH_VULKAN=OFF \
+            -DNGP_BUILD_WITH_OPTIX=OFF \
+            -DNGP_BUILD_WITH_PYTHON_BINDINGS=OFF \
+            -DNGP_BUILD_WITH_MANAGED_MEMORY=ON \
+            -DTCNN_CUDA_ARCHITECTURES="${{ env.TCNN_CUDA_ARCHITECTURES }}"
+
+      - name: Build
+        shell: bash
+        run: cmake --build build --config Release --target ALL_BUILD --verbose
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: instant-ngp-lowvram-windows-cuda
+          path: |
+            build/Release/instant-ngp.exe
+            build/Release/*.dll
+            configs/
+            data/
+            scripts/
+            LICENSE.txt
+            README_lowvram.md
+          retention-days: 30
