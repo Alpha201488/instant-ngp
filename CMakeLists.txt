@@ -40,6 +40,14 @@ if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "RelWithDebInfo")
 endif()
 
+if (MSVC)
+	# [lowvram-cn] Source files carry UTF-8 Chinese UI strings; make MSVC read
+	# them as UTF-8 instead of the system code page, or the Chinese literals
+	# get garbled at compile time.
+	add_compile_options(/utf-8)
+	set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler=/utf-8")
+endif()
+
 if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/glfw/CMakeLists.txt")
 	message(FATAL_ERROR
 		"Some instant-ngp dependencies are missing. "
