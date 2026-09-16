@@ -10,6 +10,9 @@
 #   * Arch must be the plain number form ("120"), not dotted "12.0".
 #   * actions/checkout defaults core.autocrlf=false, so submodule files stay
 #     LF and git apply succeeds; we pin autocrlf=false anyway as a guard.
+#   * With the VS generator the binary lands in build/instant-ngp.exe (NOT
+#     build/Release/), and the CUDA runtime DLLs (cudart64_12.dll,
+#     nvrtc64_120_0.dll, nvrtc-builtins64_129.dll) are copied next to it.
 
 name: build-cuda-windows
 
@@ -74,8 +77,8 @@ jobs:
         with:
           name: instant-ngp-lowvram-windows-cuda
           path: |
-            build/Release/instant-ngp.exe
-            build/Release/*.dll
+            build/instant-ngp.exe
+            build/*.dll
             configs/
             data/
             scripts/
