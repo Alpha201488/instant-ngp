@@ -42,6 +42,7 @@
 #include <zstr.hpp>
 
 #include <fstream>
+#include <cstdio>
 #include <unordered_set>
 
 #ifdef NGP_GUI
@@ -777,11 +778,11 @@ void Testbed::imgui() {
 	static std::string imgui_error_string = "";
 
 	m_picture_in_picture_res = 0;
-	if (ImGui::Begin("Camera path", 0, ImGuiWindowFlags_NoScrollbar)) {
-		if (ImGui::CollapsingHeader("Path manipulation", ImGuiTreeNodeFlags_DefaultOpen)) {
-			ImGui::Checkbox("Record camera path", &m_record_camera_path);
+	if (ImGui::Begin("相机路径", 0, ImGuiWindowFlags_NoScrollbar)) {
+		if (ImGui::CollapsingHeader("路径操作", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::Checkbox("录制相机路径", &m_record_camera_path);
 			ImGui::SameLine();
-			if (ImGui::Button("Clear")) {
+			if (ImGui::Button("清空")) {
 				m_camera_path.clear();
 			}
 
@@ -828,7 +829,7 @@ void Testbed::imgui() {
 			}
 		}
 
-		if (!m_camera_path.keyframes.empty() && ImGui::CollapsingHeader("Export", ImGuiTreeNodeFlags_DefaultOpen)) {
+		if (!m_camera_path.keyframes.empty() && ImGui::CollapsingHeader("导出", ImGuiTreeNodeFlags_DefaultOpen)) {
 			bool export_cameras = imgui_colored_button("Export cameras", 0.7);
 
 			ImGui::SameLine();
@@ -935,7 +936,7 @@ void Testbed::imgui() {
 			ImGui::BeginDisabled(m_camera_path.rendering);
 
 
-			ImGui::InputText("Video file##Video file path", m_imgui.video_path, sizeof(m_imgui.video_path));
+			ImGui::InputText("视频文件##视频文件路径", m_imgui.video_path, sizeof(m_imgui.video_path));
 			m_camera_path.render_settings.filename = m_imgui.video_path;
 			ImGui::SliderInt("MP4 quality", &m_camera_path.render_settings.quality, 0, 10);
 
@@ -954,7 +955,7 @@ void Testbed::imgui() {
 
 	bool train_extra_dims = m_nerf.training.dataset.n_extra_learnable_dims > 0;
 	if (train_extra_dims && m_nerf.training.n_images_for_training > 0) {
-		if (ImGui::Begin("Latent space 2D embedding")) {
+		if (ImGui::Begin("隐空间 2D 嵌入")) {
 			ImVec2 size = ImGui::GetContentRegionAvail();
 			if (size.x < 100.f) {
 				size.x = 100.f;
@@ -1086,17 +1087,17 @@ void Testbed::imgui() {
 		n_bytes += m_dlss_provider->allocated_bytes();
 	}
 
-	ImGui::Text("Frame: %.2f ms (%.1f FPS); Mem: %s", m_frame_ms.ema_val(), 1000.0f / m_frame_ms.ema_val(), bytes_to_string(n_bytes).c_str());
+	ImGui::Text("帧: %.2f ms (%.1f FPS); 显存: %s", m_frame_ms.ema_val(), 1000.0f / m_frame_ms.ema_val(), bytes_to_string(n_bytes).c_str());
 	bool accum_reset = false;
 
 	ImGui::SameLine();
-	ImGui::Checkbox("Overlay FPS", &m_imgui.overlay_fps);
+	ImGui::Checkbox("显示 FPS", &m_imgui.overlay_fps);
 
 
 	ImGui::BeginDisabled(!m_training_data_available);
 
 	if (
-		ImGui::CollapsingHeader("Training", m_training_data_available ? ImGuiTreeNodeFlags_DefaultOpen : 0)
+		ImGui::CollapsingHeader("训练", m_training_data_available ? ImGuiTreeNodeFlags_DefaultOpen : 0)
 	) {
 		if (imgui_colored_button(m_train ? "Stop training" : "Start training", 0.4)) {
 			set_train(!m_train);
@@ -1109,19 +1110,19 @@ void Testbed::imgui() {
 		}
 
 		ImGui::SameLine();
-		ImGui::Checkbox("encoding", &m_train_encoding);
+		ImGui::Checkbox("编码", &m_train_encoding);
 		ImGui::SameLine();
-		ImGui::Checkbox("network", &m_train_network);
+		ImGui::Checkbox("网络", &m_train_network);
 		ImGui::SameLine();
-		ImGui::Checkbox("rand levels", &m_max_level_rand_training);
+		ImGui::Checkbox("随机层级", &m_max_level_rand_training);
 		if (m_testbed_mode == ETestbedMode::Nerf) {
-			ImGui::Checkbox("envmap", &m_nerf.training.train_envmap);
+			ImGui::Checkbox("环境贴图", &m_nerf.training.train_envmap);
 			ImGui::SameLine();
-			ImGui::Checkbox("extrinsics", &m_nerf.training.optimize_extrinsics);
+			ImGui::Checkbox("外参", &m_nerf.training.optimize_extrinsics);
 			ImGui::SameLine();
-			ImGui::Checkbox("distortion", &m_nerf.training.optimize_distortion);
+			ImGui::Checkbox("畸变", &m_nerf.training.optimize_distortion);
 			ImGui::SameLine();
-			ImGui::Checkbox("per-image latents", &m_nerf.training.optimize_extra_dims);
+			ImGui::Checkbox("逐图像隐变量", &m_nerf.training.optimize_extra_dims);
 
 
 			static bool export_extrinsics_in_quat_format = true;
@@ -1137,8 +1138,8 @@ void Testbed::imgui() {
 				}
 
 				ImGui::SameLine();
-				ImGui::Checkbox("as quaternions", &export_extrinsics_in_quat_format);
-				ImGui::InputText("File##Extrinsics file path", m_imgui.extrinsics_path, sizeof(m_imgui.extrinsics_path));
+				ImGui::Checkbox("四元数格式", &export_extrinsics_in_quat_format);
+				ImGui::InputText("文件##外参文件路径", m_imgui.extrinsics_path, sizeof(m_imgui.extrinsics_path));
 			}
 		}
 
@@ -1161,7 +1162,7 @@ void Testbed::imgui() {
 			timings.emplace_back(fmt::format("Training: {:.01f}ms", m_training_ms.ema_val()));
 			ImGui::Text("%s", join(timings, ", ").c_str());
 		} else {
-			ImGui::Text("Training paused");
+			ImGui::Text("训练已暂停");
 		}
 
 		if (m_testbed_mode == ETestbedMode::Nerf) {
@@ -1194,31 +1195,31 @@ void Testbed::imgui() {
 		);
 
 		if (m_testbed_mode == ETestbedMode::Nerf && ImGui::TreeNode("NeRF training options")) {
-			ImGui::Combo("Train mode", (int*)&m_nerf.training.train_mode, TrainModeStr);
-			ImGui::Checkbox("Random bg color", &m_nerf.training.random_bg_color);
+			ImGui::Combo("训练模式", (int*)&m_nerf.training.train_mode, TrainModeStr);
+			ImGui::Checkbox("随机背景色", &m_nerf.training.random_bg_color);
 			ImGui::SameLine();
-			ImGui::Checkbox("Snap to pixel centers", &m_nerf.training.snap_to_pixel_centers);
+			ImGui::Checkbox("像素中心对齐", &m_nerf.training.snap_to_pixel_centers);
 			ImGui::SliderFloat("Near distance", &m_nerf.training.near_distance, 0.0f, 1.0f);
-			accum_reset |= ImGui::Checkbox("Linear colors", &m_nerf.training.linear_colors);
-			ImGui::Combo("Loss", (int*)&m_nerf.training.loss_type, LossTypeStr);
-			ImGui::Combo("Depth Loss", (int*)&m_nerf.training.depth_loss_type, LossTypeStr);
-			ImGui::Combo("RGB activation", (int*)&m_nerf.rgb_activation, NerfActivationStr);
-			ImGui::Combo("Density activation", (int*)&m_nerf.density_activation, NerfActivationStr);
+			accum_reset |= ImGui::Checkbox("线性颜色", &m_nerf.training.linear_colors);
+			ImGui::Combo("损失", (int*)&m_nerf.training.loss_type, LossTypeStr);
+			ImGui::Combo("深度损失", (int*)&m_nerf.training.depth_loss_type, LossTypeStr);
+			ImGui::Combo("RGB 激活", (int*)&m_nerf.rgb_activation, NerfActivationStr);
+			ImGui::Combo("密度激活", (int*)&m_nerf.density_activation, NerfActivationStr);
 			ImGui::SliderFloat("Cone angle", &m_nerf.cone_angle_constant, 0.0f, 1.0f / 128.0f);
 			ImGui::SliderFloat("Depth supervision strength", &m_nerf.training.depth_supervision_lambda, 0.f, 1.f);
 
 			// Importance sampling options, but still related to training
-			ImGui::Checkbox("Sample focal plane ~error", &m_nerf.training.sample_focal_plane_proportional_to_error);
+			ImGui::Checkbox("按误差采样焦平面", &m_nerf.training.sample_focal_plane_proportional_to_error);
 			ImGui::SameLine();
-			ImGui::Checkbox("Sample focal plane ~sharpness", &m_nerf.training.include_sharpness_in_error);
-			ImGui::Checkbox("Sample image ~error", &m_nerf.training.sample_image_proportional_to_error);
+			ImGui::Checkbox("按锐度采样焦平面", &m_nerf.training.include_sharpness_in_error);
+			ImGui::Checkbox("按误差采样图像", &m_nerf.training.sample_image_proportional_to_error);
 			ImGui::Text(
 				"%dx%d error res w/ %d steps between updates",
 				m_nerf.training.error_map.resolution.x,
 				m_nerf.training.error_map.resolution.y,
 				m_nerf.training.n_steps_between_error_map_updates
 			);
-			ImGui::Checkbox("Display error overlay", &m_nerf.training.render_error_overlay);
+			ImGui::Checkbox("显示误差叠加", &m_nerf.training.render_error_overlay);
 			if (m_nerf.training.render_error_overlay) {
 				ImGui::SliderFloat("Error overlay brightness", &m_nerf.training.error_overlay_brightness, 0.f, 1.f);
 			}
@@ -1236,8 +1237,8 @@ void Testbed::imgui() {
 		}
 
 		if (m_testbed_mode == ETestbedMode::Sdf && ImGui::TreeNode("SDF training options")) {
-			accum_reset |= ImGui::Checkbox("Use octree for acceleration", &m_sdf.use_triangle_octree);
-			accum_reset |= ImGui::Combo("Mesh SDF mode", (int*)&m_sdf.mesh_sdf_mode, MeshSdfModeStr);
+			accum_reset |= ImGui::Checkbox("使用八叉树加速", &m_sdf.use_triangle_octree);
+			accum_reset |= ImGui::Combo("网格 SDF 模式", (int*)&m_sdf.mesh_sdf_mode, MeshSdfModeStr);
 
 			accum_reset |= ImGui::SliderFloat(
 				"Surface offset scale",
@@ -1248,7 +1249,7 @@ void Testbed::imgui() {
 				ImGuiSliderFlags_Logarithmic | ImGuiSliderFlags_NoRoundToFormat
 			);
 
-			if (ImGui::Checkbox("Calculate IoU", &m_sdf.calculate_iou_online)) {
+			if (ImGui::Checkbox("计算 IoU", &m_sdf.calculate_iou_online)) {
 				m_sdf.iou_decay = 0;
 			}
 
@@ -1258,9 +1259,9 @@ void Testbed::imgui() {
 		}
 
 		if (m_testbed_mode == ETestbedMode::Image && ImGui::TreeNode("Image training options")) {
-			ImGui::Combo("Training coords", (int*)&m_image.random_mode, RandomModeStr);
-			ImGui::Checkbox("Snap to pixel centers", &m_image.training.snap_to_pixel_centers);
-			accum_reset |= ImGui::Checkbox("Linear colors", &m_image.training.linear_colors);
+			ImGui::Combo("训练坐标", (int*)&m_image.random_mode, RandomModeStr);
+			ImGui::Checkbox("像素中心对齐", &m_image.training.snap_to_pixel_centers);
+			accum_reset |= ImGui::Checkbox("线性颜色", &m_image.training.linear_colors);
 			ImGui::TreePop();
 		}
 
@@ -1281,16 +1282,16 @@ void Testbed::imgui() {
 
 	ImGuiTreeNodeFlags rendering_tree_node_flags = ImGuiTreeNodeFlags_DefaultOpen;
 
-	if (ImGui::CollapsingHeader("Rendering", rendering_tree_node_flags)) {
-		accum_reset |= ImGui::Checkbox("Foveated rendering", &m_foveated_rendering) && !m_dlss;
+	if (ImGui::CollapsingHeader("渲染", rendering_tree_node_flags)) {
+		accum_reset |= ImGui::Checkbox("注视点渲染", &m_foveated_rendering) && !m_dlss;
 		if (m_foveated_rendering) {
 			ImGui::SameLine();
 			ImGui::Text(": %.01fx", m_foveated_rendering_scaling);
 
 			if (ImGui::TreeNodeEx("Foveated rendering settings")) {
-				accum_reset |= ImGui::Checkbox("Dynamic", &m_dynamic_foveated_rendering) && !m_dlss;
+				accum_reset |= ImGui::Checkbox("动态", &m_dynamic_foveated_rendering) && !m_dlss;
 				ImGui::SameLine();
-				accum_reset |= ImGui::Checkbox("Visualize", &m_foveated_rendering_visualize) && !m_dlss;
+				accum_reset |= ImGui::Checkbox("可视化", &m_foveated_rendering_visualize) && !m_dlss;
 
 				if (m_dynamic_foveated_rendering) {
 					accum_reset |= ImGui::SliderFloat(
@@ -1321,7 +1322,7 @@ void Testbed::imgui() {
 		}
 
 		if (!m_hmd) {
-			if (ImGui::Button("Connect to VR/AR headset")) {
+			if (ImGui::Button("连接 VR/AR 头显")) {
 				try {
 					init_vr();
 				} catch (const std::runtime_error& e) {
@@ -1330,7 +1331,7 @@ void Testbed::imgui() {
 				}
 			}
 		} else {
-			if (ImGui::Button("Disconnect from VR/AR headset")) {
+			if (ImGui::Button("断开 VR/AR 头显")) {
 				m_hmd.reset();
 				update_vr_performance_settings();
 			} else if (ImGui::TreeNodeEx("VR/AR settings", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -1345,11 +1346,11 @@ void Testbed::imgui() {
 				}
 
 				if (m_devices.size() > 1 && m_testbed_mode == ETestbedMode::Nerf) {
-					ImGui::Checkbox("Multi-GPU rendering (one per eye)", &m_use_aux_devices);
+					ImGui::Checkbox("多 GPU 渲染（每只眼一个）", &m_use_aux_devices);
 				}
 
-				accum_reset |= ImGui::Checkbox("Depth-based reprojection", &m_vr_use_depth_reproject);
-				if (ImGui::Checkbox("Mask hidden display areas", &m_vr_use_hidden_area_mask)) {
+				accum_reset |= ImGui::Checkbox("基于深度的重投影", &m_vr_use_depth_reproject);
+				if (ImGui::Checkbox("隐藏显示区域遮罩", &m_vr_use_hidden_area_mask)) {
 					accum_reset = true;
 					set_all_devices_dirty();
 				}
@@ -1358,7 +1359,7 @@ void Testbed::imgui() {
 			}
 		}
 
-		ImGui::Checkbox("Render", &m_render);
+		ImGui::Checkbox("渲染", &m_render);
 		ImGui::SameLine();
 
 		const auto& render_buffer = m_views.front().render_buffer;
@@ -1372,7 +1373,7 @@ void Testbed::imgui() {
 		);
 
 		ImGui::SameLine();
-		if (ImGui::Checkbox("VSync", &m_vsync)) {
+		if (ImGui::Checkbox("垂直同步", &m_vsync)) {
 			glfwSwapInterval(m_vsync ? 1 : 0);
 		}
 
@@ -1382,7 +1383,7 @@ void Testbed::imgui() {
 		}
 
 		bool jit = jit_fusion();
-		if (ImGui::Checkbox("JIT fusion", &jit)) {
+		if (ImGui::Checkbox("JIT 融合", &jit)) {
 			accum_reset = true;
 			set_jit_fusion(jit);
 		}
@@ -1423,7 +1424,7 @@ void Testbed::imgui() {
 
 		ImGui::EndDisabled();
 
-		ImGui::Checkbox("Dynamic resolution", &m_dynamic_res);
+		ImGui::Checkbox("动态分辨率", &m_dynamic_res);
 		ImGui::SameLine();
 		ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.3f);
 		if (m_dynamic_res) {
@@ -1435,8 +1436,8 @@ void Testbed::imgui() {
 		}
 		ImGui::PopItemWidth();
 
-		accum_reset |= ImGui::Combo("Render mode", (int*)&m_render_mode, RenderModeStr);
-		accum_reset |= ImGui::Combo("Tonemap curve", (int*)&m_tonemap_curve, TonemapCurveStr);
+		accum_reset |= ImGui::Combo("渲染模式", (int*)&m_render_mode, RenderModeStr);
+		accum_reset |= ImGui::Combo("色调映射曲线", (int*)&m_tonemap_curve, TonemapCurveStr);
 		accum_reset |= ImGui::ColorEdit4("Background", &m_background_color[0]);
 
 		if (ImGui::SliderFloat("Exposure", &m_exposure, -5.f, 5.f)) {
@@ -1514,14 +1515,14 @@ void Testbed::imgui() {
 					m_render_aabb = BoundingBox(cen - diag * 0.5f, cen + diag * 0.5f);
 				}
 
-				if (ImGui::Button("Reset crop box")) {
+				if (ImGui::Button("重置裁剪框")) {
 					accum_reset = true;
 					m_render_aabb = m_aabb;
 					m_render_aabb_to_local = mat3::identity();
 				}
 
 				ImGui::SameLine();
-				if (ImGui::Button("rotation only")) {
+				if (ImGui::Button("仅旋转")) {
 					accum_reset = true;
 					vec3 world_cen = transpose(m_render_aabb_to_local) * m_render_aabb.center();
 					m_render_aabb_to_local = mat3::identity();
@@ -1539,9 +1540,9 @@ void Testbed::imgui() {
 
 		if (ImGui::TreeNode("Advanced rendering options")) {
 			ImGui::SliderInt("Max spp", &m_max_spp, 0, 1024, "%d", ImGuiSliderFlags_Logarithmic | ImGuiSliderFlags_NoRoundToFormat);
-			accum_reset |= ImGui::Checkbox("Render transparency as checkerboard", &m_render_transparency_as_checkerboard);
-			accum_reset |= ImGui::Combo("Color space", (int*)&m_color_space, ColorSpaceStr);
-			accum_reset |= ImGui::Checkbox("Snap to pixel centers", &m_snap_to_pixel_centers);
+			accum_reset |= ImGui::Checkbox("透明度棋盘格渲染", &m_render_transparency_as_checkerboard);
+			accum_reset |= ImGui::Combo("色彩空间", (int*)&m_color_space, ColorSpaceStr);
+			accum_reset |= ImGui::Checkbox("像素中心对齐", &m_snap_to_pixel_centers);
 
 			ImGui::TreePop();
 		}
@@ -1556,7 +1557,7 @@ void Testbed::imgui() {
 				m_nerf.surface_rendering = false;
 			}
 
-			ImGui::Checkbox("Surface rendering", &m_nerf.surface_rendering);
+			ImGui::Checkbox("表面渲染", &m_nerf.surface_rendering);
 			if (!jit_fusion()) {
 				ImGui::SameLine();
 				ImGui::Text("(requires JIT fusion)");
@@ -1608,9 +1609,9 @@ void Testbed::imgui() {
 				);
 			}
 
-			accum_reset |= ImGui::Checkbox("Gbuffer hard edges", &m_nerf.render_gbuffer_hard_edges);
+			accum_reset |= ImGui::Checkbox("Gbuffer 硬边", &m_nerf.render_gbuffer_hard_edges);
 
-			accum_reset |= ImGui::Combo("Groundtruth render mode", (int*)&m_ground_truth_render_mode, GroundTruthRenderModeStr);
+			accum_reset |= ImGui::Combo("真值渲染模式", (int*)&m_ground_truth_render_mode, GroundTruthRenderModeStr);
 			accum_reset |= ImGui::SliderFloat("Groundtruth alpha", &m_ground_truth_alpha, 0.0f, 1.0f, "%.02f", ImGuiSliderFlags_AlwaysClamp);
 
 			accum_reset |= ImGui::SliderFloat(
@@ -1627,8 +1628,8 @@ void Testbed::imgui() {
 				"Sphere Traced Mesh\0"
 			);
 
-			accum_reset |= ImGui::Checkbox("Analytic normals", &m_sdf.analytic_normals);
-			accum_reset |= ImGui::Checkbox("Floor", &m_floor_enable);
+			accum_reset |= ImGui::Checkbox("解析法线", &m_sdf.analytic_normals);
+			accum_reset |= ImGui::Checkbox("显示地面", &m_floor_enable);
 
 			accum_reset |=
 				ImGui::SliderFloat("Normals epsilon", &m_sdf.fd_normals_epsilon, 0.00001f, 0.1f, "%.6g", ImGuiSliderFlags_Logarithmic);
@@ -1655,16 +1656,16 @@ void Testbed::imgui() {
 			ImGui::SameLine();
 			ImGui::Text("%0.6f", psnr);
 			ImGui::SameLine();
-			ImGui::Checkbox("Quantize", &quantize_to_byte);
+			ImGui::Checkbox("量化", &quantize_to_byte);
 
 			ImGui::TreePop();
 		}
 
 		if (ImGui::TreeNode("Debug visualization")) {
-			ImGui::Checkbox("Visualize unit cube", &m_visualize_unit_cube);
+			ImGui::Checkbox("显示单位立方体", &m_visualize_unit_cube);
 			if (m_testbed_mode == ETestbedMode::Nerf) {
 				ImGui::SameLine();
-				ImGui::Checkbox("Visualize cameras", &m_nerf.visualize_cameras);
+				ImGui::Checkbox("显示相机", &m_nerf.visualize_cameras);
 				accum_reset |= ImGui::SliderInt("Show acceleration", &m_nerf.show_accel, -1, 7);
 			}
 
@@ -1679,25 +1680,25 @@ void Testbed::imgui() {
 				set_visualized_layer(m_visualized_layer);
 			}
 
-			if (ImGui::Checkbox("Single view", &m_single_view)) {
+			if (ImGui::Checkbox("单视图", &m_single_view)) {
 				set_visualized_dim(-1);
 				accum_reset = true;
 			}
 
 			if (m_testbed_mode == ETestbedMode::Nerf) {
-				if (ImGui::Button("First")) {
+				if (ImGui::Button("第一张")) {
 					first_training_view();
 				}
 				ImGui::SameLine();
-				if (ImGui::Button("Previous")) {
+				if (ImGui::Button("上一张")) {
 					previous_training_view();
 				}
 				ImGui::SameLine();
-				if (ImGui::Button("Next")) {
+				if (ImGui::Button("下一张")) {
 					next_training_view();
 				}
 				ImGui::SameLine();
-				if (ImGui::Button("Last")) {
+				if (ImGui::Button("最后一张")) {
 					last_training_view();
 				}
 				ImGui::SameLine();
@@ -1734,12 +1735,12 @@ void Testbed::imgui() {
 		}
 	}
 
-	if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
-		ImGui::Checkbox("First person controls", &m_fps_camera);
+	if (ImGui::CollapsingHeader("相机", ImGuiTreeNodeFlags_DefaultOpen)) {
+		ImGui::Checkbox("第一人称控制", &m_fps_camera);
 		ImGui::SameLine();
-		ImGui::Checkbox("Smooth motion", &m_camera_smoothing);
+		ImGui::Checkbox("平滑运动", &m_camera_smoothing);
 		ImGui::SameLine();
-		ImGui::Checkbox("Autofocus", &m_autofocus);
+		ImGui::Checkbox("自动对焦", &m_autofocus);
 		ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.3f);
 		if (ImGui::SliderFloat(
 				"Aperture size", &m_aperture_size, 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_Logarithmic | ImGuiSliderFlags_NoRoundToFormat
@@ -1767,9 +1768,9 @@ void Testbed::imgui() {
 				"Render near distance", &m_render_near_distance, 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_Logarithmic | ImGuiSliderFlags_NoRoundToFormat
 			);
 
-			bool lens_changed = ImGui::Checkbox("Apply lens distortion", &m_render_with_lens_distortion);
+			bool lens_changed = ImGui::Checkbox("应用镜头畸变", &m_render_with_lens_distortion);
 			if (m_render_with_lens_distortion) {
-				lens_changed |= ImGui::Combo("Lens mode", (int*)&m_render_lens.mode, LensModeStr);
+				lens_changed |= ImGui::Combo("镜头模式", (int*)&m_render_lens.mode, LensModeStr);
 				if (m_render_lens.mode == ELensMode::OpenCV) {
 					accum_reset |= ImGui::InputFloat("k1", &m_render_lens.params[0], 0.f, 0.f, "%.5f");
 					accum_reset |= ImGui::InputFloat("k2", &m_render_lens.params[1], 0.f, 0.f, "%.5f");
@@ -1880,11 +1881,11 @@ void Testbed::imgui() {
 	}
 
 	if (
-		ImGui::CollapsingHeader("Snapshot", ImGuiTreeNodeFlags_DefaultOpen)
+		ImGui::CollapsingHeader("快照", ImGuiTreeNodeFlags_DefaultOpen)
 	) {
-		ImGui::Text("Snapshot");
+		ImGui::Text("快照");
 		ImGui::SameLine();
-		if (ImGui::Button("Save")) {
+		if (ImGui::Button("保存")) {
 			try {
 				save_snapshot(m_imgui.snapshot_path, m_include_optimizer_state_in_snapshot, m_compress_snapshot);
 			} catch (const std::exception& e) {
@@ -1893,7 +1894,7 @@ void Testbed::imgui() {
 			}
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Load")) {
+		if (ImGui::Button("加载")) {
 			try {
 				load_snapshot(static_cast<fs::path>(m_imgui.snapshot_path));
 			} catch (const std::exception& e) {
@@ -1902,12 +1903,12 @@ void Testbed::imgui() {
 			}
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Dump parameters as images")) {
+		if (ImGui::Button("导出参数为图片")) {
 			dump_parameters_as_images(m_trainer->params(), "params");
 		}
 
 		ImGui::SameLine();
-		ImGui::Checkbox("w/ optimizer state", &m_include_optimizer_state_in_snapshot);
+		ImGui::Checkbox("含优化器状态", &m_include_optimizer_state_in_snapshot);
 		ImGui::InputText("File##Snapshot file path", m_imgui.snapshot_path, sizeof(m_imgui.snapshot_path));
 		ImGui::SameLine();
 
@@ -1918,12 +1919,12 @@ void Testbed::imgui() {
 			m_compress_snapshot = false;
 		}
 
-		ImGui::Checkbox("Compress", &m_compress_snapshot);
+		ImGui::Checkbox("压缩", &m_compress_snapshot);
 		ImGui::EndDisabled();
 	}
 
 	if (m_testbed_mode == ETestbedMode::Nerf || m_testbed_mode == ETestbedMode::Sdf) {
-		if (ImGui::CollapsingHeader("Export mesh / volume / slices")) {
+		if (ImGui::CollapsingHeader("导出网格 / 体素 / 切片")) {
 			static bool flip_y_and_z_axes = false;
 			static float density_range = 4.f;
 			BoundingBox aabb = (m_testbed_mode == ETestbedMode::Nerf) ? m_render_aabb : m_aabb;
@@ -1995,7 +1996,7 @@ void Testbed::imgui() {
 			}
 
 			ImGui::SameLine();
-			ImGui::Checkbox("Swap Y&Z", &flip_y_and_z_axes);
+			ImGui::Checkbox("交换 Y 和 Z", &flip_y_and_z_axes);
 			ImGui::SliderFloat("PNG Density Range", &density_range, 0.001f, 8.f);
 
 			ImGui::SliderInt("Res:", &m_mesh.res, 16, 2048, "%d", ImGuiSliderFlags_Logarithmic);
@@ -2004,11 +2005,11 @@ void Testbed::imgui() {
 			ImGui::Text("%dx%dx%d", res3d.x, res3d.y, res3d.z);
 			float thresh_range = (m_testbed_mode == ETestbedMode::Sdf) ? 0.5f : 10.f;
 			ImGui::SliderFloat("MC density threshold", &m_mesh.thresh, -thresh_range, thresh_range);
-			ImGui::Combo("Mesh render mode", (int*)&m_mesh_render_mode, "Off\0Vertex Colors\0Vertex Normals\0\0");
-			ImGui::Checkbox("Unwrap mesh", &m_mesh.unwrap);
+			ImGui::Combo("网格渲染模式", (int*)&m_mesh_render_mode, "Off\0Vertex Colors\0Vertex Normals\0\0");
+			ImGui::Checkbox("展开网格", &m_mesh.unwrap);
 			if (uint32_t tricount = m_mesh.indices.size() / 3) {
 				ImGui::InputText("##OBJFile", m_imgui.mesh_path, sizeof(m_imgui.mesh_path));
-				if (ImGui::Button("Save it!")) {
+				if (ImGui::Button("保存！")) {
 					save_mesh(
 						m_mesh.verts,
 						m_mesh.vert_normals,
@@ -2022,7 +2023,7 @@ void Testbed::imgui() {
 				}
 				ImGui::SameLine();
 				ImGui::Text("Mesh has %d triangles\n", tricount);
-				ImGui::Checkbox("Optimize mesh", &m_mesh.optimize_mesh);
+				ImGui::Checkbox("优化网格", &m_mesh.optimize_mesh);
 				ImGui::SliderFloat("Laplacian smoothing", &m_mesh.smooth_amount, 0.f, 2048.f);
 				ImGui::SliderFloat("Density push", &m_mesh.density_amount, 0.f, 128.f);
 				ImGui::SliderFloat("Inflate", &m_mesh.inflate_amount, 0.f, 128.f);
@@ -2031,7 +2032,7 @@ void Testbed::imgui() {
 	}
 
 	if (m_testbed_mode == ETestbedMode::Sdf) {
-		if (ImGui::CollapsingHeader("BRDF parameters")) {
+		if (ImGui::CollapsingHeader("BRDF 参数")) {
 			accum_reset |= ImGui::ColorEdit3("Base color", (float*)&m_sdf.brdf.basecolor);
 			accum_reset |= ImGui::SliderFloat("Roughness", &m_sdf.brdf.roughness, 0.f, 1.f);
 			accum_reset |= ImGui::SliderFloat("Specular", &m_sdf.brdf.specular, 0.f, 1.f);
@@ -2045,8 +2046,8 @@ void Testbed::imgui() {
 		m_sdf.brdf.ambientcolor = (m_background_color * m_background_color).rgb();
 	}
 
-	if (ImGui::CollapsingHeader("Histograms of encoding parameters")) {
-		ImGui::Checkbox("Gather histograms", &m_gather_histograms);
+	if (ImGui::CollapsingHeader("编码参数直方图")) {
+		ImGui::Checkbox("收集直方图", &m_gather_histograms);
 
 		static float maxlevel = 1.f;
 		if (ImGui::SliderFloat("Max level", &maxlevel, 0.f, 1.f)) {
@@ -2080,7 +2081,7 @@ void Testbed::imgui() {
 			}
 			ImGui::PlotHistogram("Values histogram", m_histo, 257, 0, "", FLT_MAX, FLT_MAX, ImVec2(0, 120.f));
 			ImGui::SliderFloat("Histogram horizontal scale", &m_histo_scale, 0.01f, 2.f);
-			ImGui::Checkbox("Exclude 'zero' from histogram", &excludezero);
+			ImGui::Checkbox("直方图排除零值", &excludezero);
 			ImGui::Text("Range: %0.5f - %0.5f", s.min, s.max);
 			ImGui::Text("Mean: %0.5f Sigma: %0.5f", s.mean(), s.sigma());
 			ImGui::Text("Num Zero: %d (%0.1f%%)", s.numzero, s.fraczero() * 100.f);
@@ -2089,7 +2090,7 @@ void Testbed::imgui() {
 
 	if (ImGui::BeginPopupModal("Error", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
 		ImGui::Text("%s", imgui_error_string.c_str());
-		if (ImGui::Button("OK", ImVec2(120, 0))) {
+		if (ImGui::Button("确定", ImVec2(120, 0))) {
 			ImGui::CloseCurrentPopup();
 		}
 		ImGui::EndPopup();
@@ -2099,7 +2100,7 @@ void Testbed::imgui() {
 		reset_accumulation();
 	}
 
-	if (ImGui::Button("Go to python REPL")) {
+	if (ImGui::Button("进入 Python 交互")) {
 		m_want_repl = true;
 	}
 
@@ -3011,7 +3012,7 @@ void Testbed::draw_gui() {
 	}
 
 	if (m_render_ground_truth) {
-		list->AddText(ImVec2(4.f, 4.f), 0xffffffff, "Ground Truth");
+		list->AddText(ImVec2(4.f, 4.f), 0xffffffff, "真值");
 	}
 
 	ImGui::Render();
@@ -3760,6 +3761,22 @@ void Testbed::init_window(int resw, int resh, bool hidden, bool second_window) {
 	ImFontConfig font_cfg;
 	font_cfg.SizePixels = 13.0f * xscale;
 	io.Fonts->AddFontDefault(&font_cfg);
+	// [lowvram-cn] Load a Chinese-capable font (SimHei ships with Windows) so
+	// the localized UI text renders correctly. Falls back to the default font
+	// when the file is missing (e.g. stripped-down Windows installs).
+	{
+		const char* cn_font_path = "C:/Windows/Fonts/simhei.ttf";
+		if (FILE* f = fopen(cn_font_path, "rb")) {
+			fclose(f);
+			ImFont* cn_font = io.Fonts->AddFontFromFileTTF(
+				cn_font_path, 13.0f * xscale, &font_cfg,
+				io.Fonts->GetGlyphRangesChineseFull()
+			);
+			if (cn_font) {
+				io.FontDefault = cn_font;
+			}
+		}
+	}
 	ImFontConfig overlay_font_cfg;
 	overlay_font_cfg.SizePixels = 128.0f * xscale;
 	m_imgui.overlay_font = io.Fonts->AddFontDefault(&overlay_font_cfg);

@@ -42,9 +42,11 @@ endif()
 
 if (MSVC)
 	# [lowvram-cn] Source files carry UTF-8 Chinese UI strings; make MSVC read
-	# them as UTF-8 instead of the system code page, or the Chinese literals
-	# get garbled at compile time.
-	add_compile_options(/utf-8)
+	# them as UTF-8 instead of the system code page. /utf-8 is a cl.exe flag:
+	# pass it directly for C/C++ and via -Xcompiler for CUDA (nvcc rejects it
+	# as a top-level flag, which broke the tiny-cuda-nn build).
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8")
 	set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler=/utf-8")
 endif()
 
